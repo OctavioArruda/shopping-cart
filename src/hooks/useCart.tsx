@@ -1,6 +1,7 @@
 import { createContext, ReactNode, useContext, useState } from 'react';
 import { toast } from 'react-toastify';
-import { api } from '../services/api';
+import { getProduct } from '../services/products';
+import { getStock } from '../services/stocks';
 import { Product, Stock } from '../types';
 
 interface CartProviderProps {
@@ -34,9 +35,32 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      // TODO
-    } catch {
-      // TODO
+      const addedProduct: Product = await getProduct(productId);
+
+      const cartContainsProduct = cart.includes(addedProduct);
+
+      if (cartContainsProduct) {
+        const productStock: Stock = await getStock(productId);
+
+        const updatedCart = cart.map(product => {
+          if (product.id === addedProduct.id) {
+            const updatedProductAmount = product.amount + 1;
+            if (updatedProductAmount > productStock.amount) {
+              throw new Error('Quantidade solicitada fora de estoque');
+            }
+
+            product.amount = updatedProductAmount;
+          }
+
+          return product;
+        });
+
+        setCart(updatedCart);
+      } else {
+        setCart([...cart, addedProduct]);
+      }
+    } catch (e: any) {
+      toast.error(e.message);
     }
   };
 
@@ -48,10 +72,7 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     }
   };
 
-  const updateProductAmount = async ({
-    productId,
-    amount,
-  }: UpdateProductAmount) => {
+  const updateProductAmount = async ({ productId, amount }: UpdateProductAmount) => {
     try {
       // TODO
     } catch {
@@ -60,9 +81,7 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
   };
 
   return (
-    <CartContext.Provider
-      value={{ cart, addProduct, removeProduct, updateProductAmount }}
-    >
+    <CartContext.Provider value={{ cart, addProduct, removeProduct, updateProductAmount }}>
       {children}
     </CartContext.Provider>
   );
