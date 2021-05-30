@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { MdAddShoppingCart } from 'react-icons/md';
 
 import { ProductList } from './styles';
-import { api } from '../../services/api';
+import { getProducts } from '../../services/products';
 import { formatPrice } from '../../util/format';
 import { useCart } from '../../hooks/useCart';
 import { Product } from '../../types';
@@ -20,15 +20,17 @@ const Home = (): JSX.Element => {
   const { addProduct, cart } = useCart();
 
   const cartItemsAmount = cart.reduce((sumAmount: CartItemsAmount, product: Product) => {
-    sumAmount[product.id] += product.amount;
+    const newSumAmount = { ...sumAmount };
+    newSumAmount[product.id] = product.amount;
 
-    return sumAmount;
+    return newSumAmount;
   }, {} as CartItemsAmount);
 
   useEffect(() => {
-    async function loadProducts() {
-      const products = await api.get('products').then(response => response.data);
-      const formattedProducts = products.map((product: ProductFormatted) => {
+    async function loadProducts(): Promise<void> {
+      const products = await getProducts();
+
+      const formattedProducts = products.map(product => {
         return {
           ...product,
           priceFormatted: formatPrice(product.price),
@@ -41,7 +43,7 @@ const Home = (): JSX.Element => {
     loadProducts();
   }, []);
 
-  function handleAddProduct(id: number) {
+  function handleAddProduct(id: number): void {
     addProduct(id);
   }
 
